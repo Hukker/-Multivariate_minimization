@@ -17,10 +17,10 @@ using std::pair;
 //-e^(-x^2-y^2)-cos(x)
 double func(const vector<double>& X)
 {
-	double y1 = cos(X[0]);
+	//double y1 = cos(X[0]);
 	double g = -pow(X[0], 2) - pow(X[1], 2);
-	double y2 = -exp(g) - y1;
-	return y2;
+	double y2 = -exp(g);
+	return y2 + 1;
 
 }
 
@@ -158,13 +158,8 @@ public:
 			grad = gradient(X, delta);
 
 			if (norm2(grad) < tol) {
-				std::cout << "Converged after " << iter << " iterations" << std::endl;
-				std::cout << "Calculated optimal point is (";
-				for (const auto& el : X) {
-					std::cout << el << " ";
-				}
-				std::cout << ")" << "and function value is "<< std::setprecision(4) <<func_value << std::endl;
-				return { X, func_value };
+				
+				return { X, iter };
 			}
 
 			X = substraction(X, num_on_vec(alpha, grad));
@@ -185,33 +180,20 @@ public:
 		}
 
 		if (iter >= max_iter) {
-			std::cout << "Reached maximum iterations (" << max_iter << ")" << std::endl;
 			exit(BREAK);
 		}
 
-		/*std::cout << "Optimal point: (";
-		for (size_t i = 0; i < X.size(); i++) {
-			std::cout << X[i];
-			if (i != X.size() - 1) std::cout << ", ";
-		}
-		std::cout << ")" << std::endl;
+		
 
-		std::cout << "Function value at optimal point: " << func_value << std::endl;
-
-		return { X, func_value };*/
+		return { X, func_value };
 	}
 
 
 	//метод ньютона
-	pair<vector<double>, double> newthon(const vector<double>& X_, double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
+	pair<vector<double>, int> newthon(const vector<double>& X_, double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
 	{
 		vector<double> X = X_;
-		double func_value = func(X);
 		int iter = 0;
-
-		std::cout << "Starting Newton's method..." << std::endl;
-		std::cout << "Initial point: (" << X[0] << ", " << X[1] << ")" << std::endl;
-		std::cout << "Initial function value: " << func_value << std::endl << std::endl;
 
 		while (iter < max_iter)
 		{
@@ -219,79 +201,75 @@ public:
 			auto grad = gradient(X, delta);
 			double grad_norm = norm2(grad);
 
-			// Выводим информацию каждые 10 итераций
-			if (iter % 10 == 0) {
-				std::cout << "Iteration " << iter
-					<< ": f(x) = " << func_value
-					<< ", ||grad|| = " << grad_norm << std::endl;
-			}
-
-			
+			// Проверяем условие остановки
 			if (grad_norm < tol) {
-				std::cout << "\nConverged after " << iter << " iterations" << std::endl;
 				break;
 			}
 
+			// Вычисляем гессиан
 			vector<vector<double>> hessian(2, vector<double>(2));
 
-			hessian[0][0] = (partial_derivative(X, 0, delta) -
-				partial_derivative(substraction(X, { delta, 0 }), 0, delta)) / delta;
+			// Более точное вычисление вторых производных
+			vector<double> X_plus_dx = X, X_minus_dx = X;
+			X_plus_dx[0] += delta; X_minus_dx[0] -= delta;
 
-			hessian[0][1] = hessian[1][0] =
-				(partial_derivative(X, 1, delta) -
-					partial_derivative(substraction(X, { delta, 0 }), 1, delta)) / delta;
+			vector<double> X_plus_dy = X, X_minus_dy = X;
+			X_plus_dy[1] += delta; X_minus_dy[1] -= delta;
 
-			
-			hessian[1][1] =
-				(partial_derivative(X, 1, delta) -
-					partial_derivative(substraction(X, { 0, delta }), 1, delta)) / delta;
+			// ??f/?x?
+			hessian[0][0] = (partial_derivative(X_plus_dx, 0, delta) -
+				partial_derivative(X_minus_dx, 0, delta)) / (2 * delta);
 
-			// Решаем систему H*d = -g (методом Крамера для 2x2)
+			// ??f/?y?
+			hessian[1][1] = (partial_derivative(X_plus_dy, 1, delta) -
+				partial_derivative(X_minus_dy, 1, delta)) / (2 * delta);
+
+			// ??f/?x?y
+			vector<double> X_plus_dx_for_mixed = X; X_plus_dx_for_mixed[0] += delta;
+			vector<double> X_minus_dx_for_mixed = X; X_minus_dx_for_mixed[0] -= delta;
+			hessian[0][1] = (partial_derivative(X_plus_dx_for_mixed, 1, delta) -
+				partial_derivative(X_minus_dx_for_mixed, 1, delta)) / (2 * delta);
+
+			hessian[1][0] = hessian[0][1]; // Симметрия
+
+			// Решаем систему H*d = -g
 			double det = hessian[0][0] * hessian[1][1] - hessian[0][1] * hessian[1][0];
 
-			if (fabs(det) < 1e-10) {
-				std::cerr << "Hessian is singular, switching to gradient descent" << std::endl;
-				vector<double> step = num_on_vec(0.01, grad); // маленький шаг по градиенту
-				X = substraction(X, step);
+			//if (fabs(det) < 1e-10) {
+			//	// Регуляризация гессиана
+			//	hessian[0][0] += 0.1;
+			//	hessian[1][1] += 0.1;
+			//	det = hessian[0][0] * hessian[1][1] - hessian[0][1] * hessian[1][0];
+			//}
+
+			// Вычисляем d = H??*(-g)
+			vector<double> d(2);
+			d[0] = (-grad[0] * hessian[1][1] + grad[1] * hessian[0][1]) / det;
+			d[1] = (grad[0] * hessian[1][0] - grad[1] * hessian[0][0]) / det;
+
+			// Делаем шаг с регулировкой размера
+			double step_size = alpha;
+			double current_val = func(X);
+			vector<double> new_X = { X[0] + step_size * d[0], X[1] + step_size * d[1] };
+			double new_val = func(new_X);
+
+			// Поиск оптимального размера шага
+			while (new_val > current_val && step_size > 1e-6) {
+				step_size *= 0.5;
+				new_X = { X[0] + step_size * d[0], X[1] + step_size * d[1] };
+				new_val = func(new_X);
 			}
-			else {
-				// Вычисляем d = H^-1*(-g)
-				vector<double> d(2);
-				d[0] = (-grad[0] * hessian[1][1] + grad[1] * hessian[0][1]) / det;
-				d[1] = (grad[0] * hessian[1][0] - grad[1] * hessian[0][0]) / det;
 
-				X[0] += d[0];
-				X[1] += d[1];
-			}
-
-			double new_func_value = func(X);
-
-			if (new_func_value > func_value) {
-				std::cout << "Function increased, reducing step" << std::endl;
-				X = substraction(X, num_on_vec(0.5, grad)); 
-				new_func_value = func(X);
-			}
-
-			func_value = new_func_value;
+			X = new_X;
 			iter++;
 		}
 
-		if (iter == max_iter) {
-			std::cout << "\nReached maximum iterations (" << max_iter << ")" << std::endl;
-		}
-
-		// Выводим результаты
-		std::cout << "\nOptimization results:" << std::endl;
-		std::cout << std::fixed << std::setprecision(8);
-		std::cout << "Optimal point: (" << X[0] << ", " << X[1] << ")" << std::endl;
-		std::cout << "Function value: " << func_value << std::endl;
-
-		return { X, func_value };
+		return { X, iter };
 	}
 
 
 	//метод хука дживса
-	pair<vector<double>, double> hook_jeeves(const vector<double>& X_, double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
+	pair<vector<double>, int> hook_jeeves(const vector<double>& X_,double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
 	{
 		vector<double> X = X_;
 		vector<double> X_base = X;
@@ -300,112 +278,96 @@ public:
 		int iter = 0;
 		bool improved;
 
-		std::cout << "Starting Hooke-Jeeves method..." << std::endl;
-		std::cout << "Initial point: (" << X[0] << ", " << X[1] << ")" << std::endl;
-		std::cout << "Initial function value: " << func_value << std::endl << std::endl;
-
 		while (iter < max_iter)
 		{
 			improved = false;
+			vector<double> X_new = X_base;
 
 			// 1. Исследующий поиск (Exploratory move)
 			for (size_t i = 0; i < X.size(); ++i)
 			{
 				// Пробуем шаг в положительном направлении
-				vector<double> X_plus = X_base;
+				vector<double> X_plus = X_new;
 				X_plus[i] += delta_step[i];
 				double f_plus = func(X_plus);
 
 				// Пробуем шаг в отрицательном направлении
-				vector<double> X_minus = X_base;
+				vector<double> X_minus = X_new;
 				X_minus[i] -= delta_step[i];
 				double f_minus = func(X_minus);
 
 				// Выбираем наилучшее направление
-				if (f_plus < func_value)
-				{
-					X_base = X_plus;
-					func_value = f_plus;
-					improved = true;
+				if (f_plus < func(X_new)) {
+					X_new = X_plus;
 				}
-				else if (f_minus < func_value)
-				{
-					X_base = X_minus;
-					func_value = f_minus;
-					improved = true;
+				if (f_minus < func(X_new)) {
+					X_new = X_minus;
 				}
 			}
 
-			// 2. Проверка на улучшение
-			if (improved)
+			// Проверяем, было ли улучшение
+			double new_func_value = func(X_new);
+			if (new_func_value < func_value - tol)
 			{
-				// 3. Поиск по образцу (Pattern move)
-				vector<double> X_pattern = X_base;
-				for (size_t i = 0; i < X.size(); ++i)
-				{
-					X_pattern[i] += (X_base[i] - X[i]);
+				// 2. Поиск по образцу (Pattern move)
+				vector<double> X_pattern(X_new.size());
+				for (size_t i = 0; i < X_new.size(); ++i) {
+					X_pattern[i] = X_new[i] + (X_new[i] - X_base[i]);
 				}
 
-				// Проверяем новую точку
 				double f_pattern = func(X_pattern);
-				if (f_pattern < func_value)
-				{
-					X = X_base;
-					X_base = X_pattern;
-					func_value = f_pattern;
+
+				// Если шаг по образцу успешен
+				if (f_pattern < new_func_value) {
+					X_base = X_new;
+					X_new = X_pattern;
+					new_func_value = f_pattern;
+					improved = true;
 				}
-				else
-				{
-					X = X_base;
+				else {
+					improved = true;
 				}
+
+				X_base = X_new;
+				func_value = new_func_value;
 			}
-			else
+
+			// 3. Уменьшаем шаг, если улучшения нет
+			if (!improved)
 			{
-				// 4. Уменьшаем шаг, если улучшения нет
-				for (size_t i = 0; i < delta_step.size(); ++i)
-				{
+				for (size_t i = 0; i < delta_step.size(); ++i) {
 					delta_step[i] *= 0.5;
 				}
-			}
 
-			// Выводим информацию каждые 100 итераций
-			/*if (iter % 100 == 0)
-			{
-				std::cout << "Iteration " << iter << ": f(x) = " << func_value
-					<< ", step size = " << delta_step[0] << std::endl;
-			}*/
-
-			// Проверка условия остановки
-			bool stop = true;
-			for (const auto& step : delta_step)
-			{
-				if (step > tol)
-				{
-					stop = false;
+				// Проверка условия остановки
+				if (norm2(delta_step) < tol) {
 					break;
 				}
-			}
-			if (stop)
-			{
-				std::cout << "\nConverged after " << iter << " iterations" << std::endl;
-				break;
 			}
 
 			iter++;
 		}
 
-		if (iter == max_iter)
-		{
-			std::cout << "\nReached maximum iterations (" << max_iter << ")" << std::endl;
-		}
+		return { X_base, iter };
+	}
 
-		// Выводим результаты
-		std::cout << "\nOptimization results:" << std::endl;
-		std::cout << std::fixed << std::setprecision(8);
-		std::cout << "Optimal point: (" << X_base[0] << ", " << X_base[1] << ")" << std::endl;
-		std::cout << "Function value: " << func_value << std::endl;
+	pair<vector<double>, int> gradient_newthon(const vector<double>& X_, double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
+	{
+		vector<double> X(X_);
+		auto step1 = gradient_method(X, max_iter = 2);
+		auto step2 = newthon(step1.first);
 
-		return { X_base, func_value };
+		return step2;
+	}
+	
+
+	pair<vector<double>, int> jeeves_newthon(const vector<double>& X_, double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
+	{
+		vector<double> X(X_);
+		auto step1 = hook_jeeves(X, max_iter = 2);
+		auto step2 = newthon(step1.first);
+
+		return step2;
 	}
 
 };
@@ -418,19 +380,35 @@ int main()
 	PartitionGradient p(x, r);
 	p.check_nh();
 	
-	/*vector<double> grad = p.gradient(x);
-	for (auto el : grad) {
-		std::cout << el << "\n";
-	}*/
+	
 
-	//auto res = p.gradient_method(x);
-	//std::cout << res.second;
+	double alpha = 0.1;
+	size_t n = x.size();
 
-	//auto res1 = p.newthon(x);  // Вызов метода Ньютона
-	//std::cout << "Final result: " << res1.second << std::endl;
 
-	auto res = p.hook_jeeves(x, 0.5, 0.001); // alpha=0.5, tol=0.001
-	std::cout << "Final result: " << res.second << std::endl;
+	auto res1 = p.gradient_method(x, alpha); //Вызов Градиентного метода
+	std::cout << res1.second << std::endl;
+
+	auto res2 = p.newthon(x, alpha);  // Вызов метода Ньютона
+	std::cout << res2.second << std::endl;
+
+	auto res3 = p.hook_jeeves(x, alpha); // Вызов метода Хука-Дживса
+	std::cout  << res3.second << std::endl;
+	std::cout << "\n";
+	for (int i = 0; i < n; i++) {
+		std::cout << res1.first[i] << " ";
+	}
+	std::cout << "\n";
+	std::cout << "\n";
+	for (int i = 0; i < n; i++) {
+		std::cout << res2.first[i] << " ";
+	}
+	std::cout << "\n";
+	std::cout << "\n";
+	for (int i = 0; i < n; i++) {
+		std::cout << res3.first[i] << " ";
+	}
+
 
 	return 0;
 }
