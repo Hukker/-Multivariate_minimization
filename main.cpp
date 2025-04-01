@@ -27,10 +27,12 @@ double func(const vector<double>& X)
 
 class PartitionGradient
 {
+	//СЃС‚Р°СЂС‚РѕРІР°СЏ С‚РѕС‡РєР°
 	vector<double> X{ 0.3,0.4 };
 
 	double r = 1;
 
+	//С‚РѕС‡РєР° РёР·РІРµСЃС‚РЅРѕРіРѕ РѕРїС‚РёРјСѓРјР°
 	vector<double> X_opt{ 0,0 };
 
 public:
@@ -39,7 +41,7 @@ public:
 
 	
 
-	//Проверка находится ли точка в окрестности
+	//РџСЂРѕРІРµСЂРєР° РЅР°С…РѕРґРёС‚СЃСЏ Р»Рё С‚РѕС‡РєР° РІ РѕРєСЂРµСЃС‚РЅРѕСЃС‚Рё
 	void check_nh()
 	{
 		size_t n = X.size();
@@ -59,7 +61,7 @@ public:
 		}
 	}
 
-	//вычисление частной производной j-й компоненты
+	//РІС‹С‡РёСЃР»РµРЅРёРµ С‡Р°СЃС‚РЅРѕР№ РїСЂРѕРёР·РІРѕРґРЅРѕР№ j-Р№ РєРѕРјРїРѕРЅРµРЅС‚С‹
 	double partial_derivative(const vector<double> &X_, int j, double delta_x = 0.00001)
 	{
 
@@ -75,7 +77,7 @@ public:
 		return delta_y / delta_x;
 	}
 
-	//вычисление градиента функции в точке 
+	//РІС‹С‡РёСЃР»РµРЅРёРµ РіСЂР°РґРёРµРЅС‚Р° С„СѓРЅРєС†РёРё РІ С‚РѕС‡РєРµ 
 	vector<double> gradient(const vector<double>& X_, double eps = 0.00001)
 	{
 		vector<double> grad;
@@ -88,7 +90,7 @@ public:
 		return grad;
 	}
 
-	//вторая норма вектора
+	//РІС‚РѕСЂР°СЏ РЅРѕСЂРјР° РІРµРєС‚РѕСЂР°
 	double norm2(const vector<double> X_)
 	{
 		vector<double> X(X_);
@@ -104,7 +106,7 @@ public:
 	}
 
 
-	//вектор на вектор скалярно
+	//РІРµРєС‚РѕСЂ РЅР° РІРµРєС‚РѕСЂ СЃРєР°Р»СЏСЂРЅРѕ
 	double dot(const vector<double>& x_, const vector<double>& y_)
 	{
 		if (x_.size() != y_.size()) {
@@ -120,7 +122,7 @@ public:
 		}
 	}
 
-	//число на вектор
+	//С‡РёСЃР»Рѕ РЅР° РІРµРєС‚РѕСЂ
 	vector<double> num_on_vec(double num, const vector<double>& x_)
 	{
 		vector<double> X(x_);
@@ -131,7 +133,7 @@ public:
 		return X;
 	}
 
-	//вычестание векторов
+	//РІС‹С‡РµСЃС‚Р°РЅРёРµ РІРµРєС‚РѕСЂРѕРІ
 	vector<double> substraction(const vector<double>& x_, const vector<double>& y_)
 	{
 		vector<double> sub;
@@ -141,7 +143,7 @@ public:
 		return sub;
 	}
 
-	//градиентный метод первого порядка
+	//РіСЂР°РґРёРµРЅС‚РЅС‹Р№ РјРµС‚РѕРґ РїРµСЂРІРѕРіРѕ РїРѕСЂСЏРґРєР°
 	pair<vector<double>, double> gradient_method(const vector<double>& X_,double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
 	{
 		//int num = std::static_cast<int> (1.0/tol);
@@ -199,6 +201,8 @@ public:
 		return { X, func_value };*/
 	}
 
+
+	//РјРµС‚РѕРґ РЅСЊСЋС‚РѕРЅР°
 	pair<vector<double>, double> newthon(const vector<double>& X_, double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
 	{
 		vector<double> X = X_;
@@ -211,66 +215,60 @@ public:
 
 		while (iter < max_iter)
 		{
-			// Вычисляем градиент
+			// Р’С‹С‡РёСЃР»СЏРµРј РіСЂР°РґРёРµРЅС‚
 			auto grad = gradient(X, delta);
 			double grad_norm = norm2(grad);
 
-			// Выводим информацию каждые 10 итераций
+			// Р’С‹РІРѕРґРёРј РёРЅС„РѕСЂРјР°С†РёСЋ РєР°Р¶РґС‹Рµ 10 РёС‚РµСЂР°С†РёР№
 			if (iter % 10 == 0) {
 				std::cout << "Iteration " << iter
 					<< ": f(x) = " << func_value
 					<< ", ||grad|| = " << grad_norm << std::endl;
 			}
 
-			// Проверяем условие остановки
+			
 			if (grad_norm < tol) {
 				std::cout << "\nConverged after " << iter << " iterations" << std::endl;
 				break;
 			}
 
-			// Вычисляем гессиан (матрицу вторых производных)
 			vector<vector<double>> hessian(2, vector<double>(2));
 
-			// ??f/?x?
 			hessian[0][0] = (partial_derivative(X, 0, delta) -
 				partial_derivative(substraction(X, { delta, 0 }), 0, delta)) / delta;
 
-			// ??f/?x?y и ??f/?y?x (симметрично)
 			hessian[0][1] = hessian[1][0] =
 				(partial_derivative(X, 1, delta) -
 					partial_derivative(substraction(X, { delta, 0 }), 1, delta)) / delta;
 
-			// ?2f/?y2
+			
 			hessian[1][1] =
 				(partial_derivative(X, 1, delta) -
 					partial_derivative(substraction(X, { 0, delta }), 1, delta)) / delta;
 
-			// Решаем систему H*d = -g (методом Крамера для 2x2)
+			// Р РµС€Р°РµРј СЃРёСЃС‚РµРјСѓ H*d = -g (РјРµС‚РѕРґРѕРј РљСЂР°РјРµСЂР° РґР»СЏ 2x2)
 			double det = hessian[0][0] * hessian[1][1] - hessian[0][1] * hessian[1][0];
 
 			if (fabs(det) < 1e-10) {
 				std::cerr << "Hessian is singular, switching to gradient descent" << std::endl;
-				vector<double> step = num_on_vec(0.01, grad); // маленький шаг по градиенту
+				vector<double> step = num_on_vec(0.01, grad); // РјР°Р»РµРЅСЊРєРёР№ С€Р°Рі РїРѕ РіСЂР°РґРёРµРЅС‚Сѓ
 				X = substraction(X, step);
 			}
 			else {
-				// Вычисляем d = H??*(-g)
+				// Р’С‹С‡РёСЃР»СЏРµРј d = H^-1*(-g)
 				vector<double> d(2);
 				d[0] = (-grad[0] * hessian[1][1] + grad[1] * hessian[0][1]) / det;
 				d[1] = (grad[0] * hessian[1][0] - grad[1] * hessian[0][0]) / det;
 
-				// Делаем шаг
 				X[0] += d[0];
 				X[1] += d[1];
 			}
 
-			// Обновляем значение функции
 			double new_func_value = func(X);
 
-			// Проверяем, что значение функции уменьшилось
 			if (new_func_value > func_value) {
 				std::cout << "Function increased, reducing step" << std::endl;
-				X = substraction(X, num_on_vec(0.5, grad)); // Откатываемся и делаем шаг по градиенту
+				X = substraction(X, num_on_vec(0.5, grad)); 
 				new_func_value = func(X);
 			}
 
@@ -282,7 +280,7 @@ public:
 			std::cout << "\nReached maximum iterations (" << max_iter << ")" << std::endl;
 		}
 
-		// Выводим результаты
+		// Р’С‹РІРѕРґРёРј СЂРµР·СѓР»СЊС‚Р°С‚С‹
 		std::cout << "\nOptimization results:" << std::endl;
 		std::cout << std::fixed << std::setprecision(8);
 		std::cout << "Optimal point: (" << X[0] << ", " << X[1] << ")" << std::endl;
@@ -291,11 +289,13 @@ public:
 		return { X, func_value };
 	}
 
+
+	//РјРµС‚РѕРґ С…СѓРєР° РґР¶РёРІСЃР°
 	pair<vector<double>, double> hook_jeeves(const vector<double>& X_, double alpha = 1, double tol = 0.1, double delta = 0.00001, int max_iter = 10000)
 	{
 		vector<double> X = X_;
 		vector<double> X_base = X;
-		vector<double> delta_step(X.size(), alpha); // Шаги по каждой координате
+		vector<double> delta_step(X.size(), alpha); // РЁР°РіРё РїРѕ РєР°Р¶РґРѕР№ РєРѕРѕСЂРґРёРЅР°С‚Рµ
 		double func_value = func(X);
 		int iter = 0;
 		bool improved;
@@ -308,20 +308,20 @@ public:
 		{
 			improved = false;
 
-			// 1. Исследующий поиск (Exploratory move)
+			// 1. РСЃСЃР»РµРґСѓСЋС‰РёР№ РїРѕРёСЃРє (Exploratory move)
 			for (size_t i = 0; i < X.size(); ++i)
 			{
-				// Пробуем шаг в положительном направлении
+				// РџСЂРѕР±СѓРµРј С€Р°Рі РІ РїРѕР»РѕР¶РёС‚РµР»СЊРЅРѕРј РЅР°РїСЂР°РІР»РµРЅРёРё
 				vector<double> X_plus = X_base;
 				X_plus[i] += delta_step[i];
 				double f_plus = func(X_plus);
 
-				// Пробуем шаг в отрицательном направлении
+				// РџСЂРѕР±СѓРµРј С€Р°Рі РІ РѕС‚СЂРёС†Р°С‚РµР»СЊРЅРѕРј РЅР°РїСЂР°РІР»РµРЅРёРё
 				vector<double> X_minus = X_base;
 				X_minus[i] -= delta_step[i];
 				double f_minus = func(X_minus);
 
-				// Выбираем наилучшее направление
+				// Р’С‹Р±РёСЂР°РµРј РЅР°РёР»СѓС‡С€РµРµ РЅР°РїСЂР°РІР»РµРЅРёРµ
 				if (f_plus < func_value)
 				{
 					X_base = X_plus;
@@ -336,17 +336,17 @@ public:
 				}
 			}
 
-			// 2. Проверка на улучшение
+			// 2. РџСЂРѕРІРµСЂРєР° РЅР° СѓР»СѓС‡С€РµРЅРёРµ
 			if (improved)
 			{
-				// 3. Поиск по образцу (Pattern move)
+				// 3. РџРѕРёСЃРє РїРѕ РѕР±СЂР°Р·С†Сѓ (Pattern move)
 				vector<double> X_pattern = X_base;
 				for (size_t i = 0; i < X.size(); ++i)
 				{
 					X_pattern[i] += (X_base[i] - X[i]);
 				}
 
-				// Проверяем новую точку
+				// РџСЂРѕРІРµСЂСЏРµРј РЅРѕРІСѓСЋ С‚РѕС‡РєСѓ
 				double f_pattern = func(X_pattern);
 				if (f_pattern < func_value)
 				{
@@ -361,21 +361,21 @@ public:
 			}
 			else
 			{
-				// 4. Уменьшаем шаг, если улучшения нет
+				// 4. РЈРјРµРЅСЊС€Р°РµРј С€Р°Рі, РµСЃР»Рё СѓР»СѓС‡С€РµРЅРёСЏ РЅРµС‚
 				for (size_t i = 0; i < delta_step.size(); ++i)
 				{
 					delta_step[i] *= 0.5;
 				}
 			}
 
-			// Выводим информацию каждые 100 итераций
-			if (iter % 100 == 0)
+			// Р’С‹РІРѕРґРёРј РёРЅС„РѕСЂРјР°С†РёСЋ РєР°Р¶РґС‹Рµ 100 РёС‚РµСЂР°С†РёР№
+			/*if (iter % 100 == 0)
 			{
 				std::cout << "Iteration " << iter << ": f(x) = " << func_value
 					<< ", step size = " << delta_step[0] << std::endl;
-			}
+			}*/
 
-			// Проверка условия остановки
+			// РџСЂРѕРІРµСЂРєР° СѓСЃР»РѕРІРёСЏ РѕСЃС‚Р°РЅРѕРІРєРё
 			bool stop = true;
 			for (const auto& step : delta_step)
 			{
@@ -399,7 +399,7 @@ public:
 			std::cout << "\nReached maximum iterations (" << max_iter << ")" << std::endl;
 		}
 
-		// Выводим результаты
+		// Р’С‹РІРѕРґРёРј СЂРµР·СѓР»СЊС‚Р°С‚С‹
 		std::cout << "\nOptimization results:" << std::endl;
 		std::cout << std::fixed << std::setprecision(8);
 		std::cout << "Optimal point: (" << X_base[0] << ", " << X_base[1] << ")" << std::endl;
@@ -426,7 +426,7 @@ int main()
 	//auto res = p.gradient_method(x);
 	//std::cout << res.second;
 
-	//auto res1 = p.newthon(x);  // Вызов метода Ньютона
+	//auto res1 = p.newthon(x);  // Р’С‹Р·РѕРІ РјРµС‚РѕРґР° РќСЊСЋС‚РѕРЅР°
 	//std::cout << "Final result: " << res1.second << std::endl;
 
 	auto res = p.hook_jeeves(x, 0.5, 0.001); // alpha=0.5, tol=0.001
